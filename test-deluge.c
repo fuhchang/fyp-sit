@@ -80,7 +80,7 @@ PROCESS_THREAD(deluge_test_process, ev, data)
   char *file = "hello-world.ce";
   static struct etimer et;
   PROCESS_BEGIN();
-  
+  printf("data:%s ev:%s\n",data,ev);
   memset(buf, 0, sizeof(buf));
   
   if(node_id == SINK_ID) {
@@ -91,7 +91,6 @@ PROCESS_THREAD(deluge_test_process, ev, data)
   
   //cfs_remove(file);
   fd = cfs_open("version", CFS_WRITE);
-  printf("fd %d\n",fd);
   if(fd < 0) {
     process_exit(NULL);
   }
@@ -114,7 +113,7 @@ PROCESS_THREAD(deluge_test_process, ev, data)
     } else {
     int ret;
     char *print, *symbol;
-
+    deluge_disseminate(file, node_id == SINK_ID);
     ret = elfloader_load(fd_file);
     cfs_close(fd_file);
     symbol = "";
@@ -151,7 +150,7 @@ PROCESS_THREAD(deluge_test_process, ev, data)
       break;
     }
     printf("Message: %s  Symbol: %s\n", print, symbol);
-    deluge_disseminate(file, node_id == SINK_ID);
+    
   //deluge_disseminate("test", node_id == SINK_ID);
   cfs_close(fd_file);
 
@@ -167,7 +166,7 @@ PROCESS_THREAD(deluge_test_process, ev, data)
         cfs_close(fd);
 	buf[sizeof(buf) - 1] = '\0';
 	if(r <= 0) {
-	  printf("failed to read data from the file\n");
+	  //printf("failed to read data from the file\n");
 	} else {
 	  printf("File contents: %s\n", buf);
 	}
