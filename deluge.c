@@ -657,14 +657,10 @@ int
 deluge_disseminate(char *file, unsigned version)
 {
   /* This implementation disseminates at most one object. */
- 
-  
-  if(next_object_id > 0 || init_object(&current_object, file, version) < 0) {
-    printf("init object: %d \n",init_object(&current_object, file, version));
-    printf("next obj: %d\n",next_object_id );
+  int result = init_object(&current_object, file, version);
+  if(next_object_id > 0 || result  < 0) {
     return -1;
   }
-  printf("beginning protothread\n");
   process_start(&deluge_process, file);
 
   return 0;

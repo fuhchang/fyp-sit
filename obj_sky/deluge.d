@@ -1,4 +1,4 @@
-obj_sky/deluge.o: ../../apps/deluge/deluge.c ../../core/./contiki.h \
+obj_sky/deluge.o: deluge.c ../../core/./contiki.h \
  ../../core/./contiki-version.h ../../platform/sky/./contiki-conf.h \
  ../../platform/sky/./platform-conf.h ../../cpu/msp430/./msp430def.h \
  ../../core/./contiki-default-conf.h ../../core/./sys/process.h \
@@ -32,8 +32,8 @@ obj_sky/deluge.o: ../../apps/deluge/deluge.c ../../core/./contiki.h \
  ../../core/./net/mac/mac.h ../../core/./dev/radio.h \
  ../../core/./net/rime/trickle.h ../../core/./cfs/cfs.h shell-exec.h \
  shell.h shell-base64.h shell-blink.h shell-checkpoint.h \
- shell-collect-view.h shell-coffee.h shell-download.h shell-exec.h \
- shell-file.h shell-httpd.h shell-irc.h shell-memdebug.h shell-netfile.h \
+ shell-collect-view.h shell-coffee.h shell-download.h shell-file.h \
+ shell-httpd.h shell-irc.h shell-memdebug.h shell-netfile.h \
  shell-netperf.h shell-netstat.h shell-ping.h shell-power.h \
  shell-powertrace.h shell-ps.h shell-reboot.h shell-rime-debug.h \
  shell-rime-debug-runicast.h shell-rime-neighbors.h shell-rime-netcmd.h \
@@ -42,9 +42,9 @@ obj_sky/deluge.o: ../../apps/deluge/deluge.c ../../core/./contiki.h \
  shell-sendtest.h shell-sky.h shell-tcpsend.h shell-text.h shell-time.h \
  shell-udpsend.h shell-vars.h shell-wget.h \
  ../../core/./loader/elfloader.h ../../core/./lib/crc16.h \
- ../../core/./lib/random.h ../../core/./sys/node-id.h \
- ../../apps/deluge/deluge.h ../../core/./dev/leds.h
-../../apps/deluge/deluge.c ../../core/./contiki.h :
+ ../../core/./lib/random.h ../../core/./sys/node-id.h deluge.h \
+ ../../core/./dev/leds.h
+deluge.c ../../core/./contiki.h :
  ../../core/./contiki-version.h ../../platform/sky/./contiki-conf.h :
  ../../platform/sky/./platform-conf.h ../../cpu/msp430/./msp430def.h :
  ../../core/./contiki-default-conf.h ../../core/./sys/process.h :
@@ -78,8 +78,8 @@ obj_sky/deluge.o: ../../apps/deluge/deluge.c ../../core/./contiki.h \
  ../../core/./net/mac/mac.h ../../core/./dev/radio.h :
  ../../core/./net/rime/trickle.h ../../core/./cfs/cfs.h shell-exec.h :
  shell.h shell-base64.h shell-blink.h shell-checkpoint.h :
- shell-collect-view.h shell-coffee.h shell-download.h shell-exec.h :
- shell-file.h shell-httpd.h shell-irc.h shell-memdebug.h shell-netfile.h :
+ shell-collect-view.h shell-coffee.h shell-download.h shell-file.h :
+ shell-httpd.h shell-irc.h shell-memdebug.h shell-netfile.h :
  shell-netperf.h shell-netstat.h shell-ping.h shell-power.h :
  shell-powertrace.h shell-ps.h shell-reboot.h shell-rime-debug.h :
  shell-rime-debug-runicast.h shell-rime-neighbors.h shell-rime-netcmd.h :
@@ -88,5 +88,5 @@ obj_sky/deluge.o: ../../apps/deluge/deluge.c ../../core/./contiki.h \
  shell-sendtest.h shell-sky.h shell-tcpsend.h shell-text.h shell-time.h :
  shell-udpsend.h shell-vars.h shell-wget.h :
  ../../core/./loader/elfloader.h ../../core/./lib/crc16.h :
- ../../core/./lib/random.h ../../core/./sys/node-id.h :
- ../../apps/deluge/deluge.h ../../core/./dev/leds.h :
+ ../../core/./lib/random.h ../../core/./sys/node-id.h deluge.h :
+ ../../core/./dev/leds.h :
