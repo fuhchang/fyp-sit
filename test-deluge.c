@@ -80,103 +80,55 @@ PROCESS_THREAD(deluge_test_process, ev, data)
   char *file = "hello-world.ce";
   static struct etimer et;
   PROCESS_BEGIN();
-  printf("data:%s ev:%s\n",data,ev);
-  memset(buf, 0, sizeof(buf));
+ 
   
   if(node_id == SINK_ID) {
-    strcpy(buf, "This is version 1 of the file");
-  } else {
-    strcpy(buf, "This is version 0 of the file");
-  }
+   printf("Sink node: trying to transmit file.\n");
+ } else {
+   printf("Non-sink node: trying to recieve file.\n");
+ }
   
-  //cfs_remove(file);
-  fd = cfs_open("version", CFS_WRITE);
-  if(fd < 0) {
-    process_exit(NULL);
-  }
-  if(cfs_write(fd, buf, sizeof(buf)) != sizeof(buf)) {
-    cfs_close(fd);
-    process_exit(NULL);
-  }
+ 
 
-  if(cfs_seek(fd, FILE_SIZE, CFS_SEEK_SET) != FILE_SIZE) {
-    printf("failed to seek to the end\n");
-  }
-
-  if(elfloader_autostart_processes != NULL) {
-      printf("elf loader failed\n");
-      autostart_exit(elfloader_autostart_processes);
-    }
-     fd_file = cfs_open(file, CFS_READ | CFS_WRITE);
-     if(fd_file < 0) {
-       printf("failed to load file\n");
-    } else {
+  
     int ret;
     char *print, *symbol;
     deluge_disseminate(file, node_id == SINK_ID);
     ret = elfloader_load(fd_file);
     cfs_close(fd_file);
-    symbol = "";
-
-    switch(ret) {
-    case ELFLOADER_OK:
-      print = "OK";
-      break;
-    case ELFLOADER_BAD_ELF_HEADER:
-      print = "Bad ELF header";
-      break;
-    case ELFLOADER_NO_SYMTAB:
-      print = "No symbol table";
-      break;
-    case ELFLOADER_NO_STRTAB:
-      print = "No string table";
-      break;
-    case ELFLOADER_NO_TEXT:
-      print = "No text segment";
-      break;
-    case ELFLOADER_SYMBOL_NOT_FOUND:
-      print = "Symbol not found: ";
-      symbol = elfloader_unknown;
-      break;
-    case ELFLOADER_SEGMENT_NOT_FOUND:
-      print = "Segment not found: ";
-      symbol = elfloader_unknown;
-      break;
-    case ELFLOADER_NO_STARTPOINT:
-      print = "No starting point";
-      break;
-    default:
-      print = "Unknown return code from the ELF loader (internal bug)";
-      break;
-    }
-    printf("Message: %s  Symbol: %s\n", print, symbol);
     
-  //deluge_disseminate("test", node_id == SINK_ID);
-  cfs_close(fd_file);
+etimer_set(&et, CLOCK_SECOND * 5);
+ PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+ if(node_id != SINK_ID) {
+   fd = cfs_open(file, CFS_READ);
+   if(fd < 0) {
+     printf("failed to open the test file\n");
+   } else {
+     printf("Start dynamic loading\n");
+     int ret = elfloader_load(fd);
+     printf("%d\n", ret); 
 
-  etimer_set(&et, CLOCK_SECOND * 5);
-  for(;;) {
-    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
-    if(node_id != SINK_ID) {
-      fd = cfs_open(file, CFS_READ);
-      if(fd < 0) {
-        printf("failed to open the test file\n");
-      } else {
-        r = cfs_read(fd, buf, sizeof(buf));
-        cfs_close(fd);
-	buf[sizeof(buf) - 1] = '\0';
-	if(r <= 0) {
-	  //printf("failed to read data from the file\n");
-	} else {
-	  printf("File contents: %s\n", buf);
-	}
-	
-      }
-    }
-    etimer_reset(&et);
-    
-  }
+     cfs_close(fd);
+
+     int i;
+     switch(ret) {
+case ELFLOADER_OK:
+ for(i=0; elfloader_autostart_processes[i] != NULL; i++) {
+   printf("exec: starting process %s. \n", 
+  elfloader_autostart_processes[i]->name);
  }
+ autostart_start(elfloader_autostart_processes);
+         break;
+
+default:
+ printf("Unkown return code from ELF loader (internal bug)\n");
+          break;
+     } 
+   }
+ }
+ etimer_reset(&et);
+  
+  
 
   PROCESS_END();
 }

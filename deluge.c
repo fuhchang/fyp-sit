@@ -198,7 +198,6 @@ init_object(struct deluge_object *obj, char *filename, unsigned version)
   if(obj->cfs_fd < 0) {
     return -1;
   }  
-   printf("file fd: %d\n",obj->cfs_fd);
   obj->filename = filename;
   obj->object_id = next_object_id++;
   obj->size = file_size(filename);
