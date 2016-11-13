@@ -32,9 +32,9 @@
 
 /**
  * \file
- *	Header for Deluge.
+ *  Header for Deluge.
  * \author
- * 	Nicolas Tsiftes <nvt@sics.se>
+ *  Nicolas Tsiftes <nvt@sics.se>
  */
 
 #ifndef DELUGE_H
@@ -44,55 +44,55 @@
 
 PROCESS_NAME(deluge_process);
 
-#define LONG_TIMER(et, counter, time)			\
-  do {							\
-    for (counter = 0; counter < time; counter++) {	\
-      etimer_set(&et, CLOCK_SECOND);			\
-      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));	\
-    }							\
+#define LONG_TIMER(et, counter, time)     \
+  do {              \
+    for (counter = 0; counter < time; counter++) {  \
+      etimer_set(&et, CLOCK_SECOND);      \
+      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));  \
+    }             \
   } while (0)
 
-#define DELUGE_UNICAST_CHANNEL		55
-#define DELUGE_BROADCAST_CHANNEL	56
+#define DELUGE_UNICAST_CHANNEL    55
+#define DELUGE_BROADCAST_CHANNEL  56
 
 /* All the packets in a page have been received. */
-#define PAGE_COMPLETE	1
+#define PAGE_COMPLETE 1
 /* All pages up to, and including, this page are complete. */
-#define PAGE_AVAILABLE	1
+#define PAGE_AVAILABLE  1
 
-#define S_PKT		64		/* Deluge packet size. */
-#define N_PKT		4		/* Packets per page. */
-#define S_PAGE		(S_PKT * N_PKT)	/* Fixed page size. */
+#define S_PKT   64    /* Deluge packet size. */
+#define N_PKT   4   /* Packets per page. */
+#define S_PAGE    (S_PKT * N_PKT) /* Fixed page size. */
 
 /* Bounds for the round time in seconds. */
-#define T_LOW		2
-#define T_HIGH		64
+#define T_LOW   2
+#define T_HIGH    64
 
 /* Random interval for request transmissions in jiffies. */
-#define T_R		(CLOCK_SECOND * 2)
+#define T_R   (CLOCK_SECOND * 2)
 
 /* Bound for the number of advertisements. */
-#define CONST_K		1
+#define CONST_K   1
 
 /* The number of pages in this object. */
-#define OBJECT_PAGE_COUNT(obj)	(((obj).size + (S_PAGE - 1)) / S_PAGE)
+#define OBJECT_PAGE_COUNT(obj)  (((obj).size + (S_PAGE - 1)) / S_PAGE)
 
-#define ALL_PACKETS		((1 << N_PKT) - 1)
+#define ALL_PACKETS   ((1 << N_PKT) - 1)
 
-#define DELUGE_CMD_SUMMARY	1
-#define DELUGE_CMD_REQUEST	2
-#define DELUGE_CMD_PACKET	3
-#define DELUGE_CMD_PROFILE	4
+#define DELUGE_CMD_SUMMARY  1
+#define DELUGE_CMD_REQUEST  2
+#define DELUGE_CMD_PACKET 3
+#define DELUGE_CMD_PROFILE  4
 
-#define DELUGE_STATE_MAINTAIN	1
-#define DELUGE_STATE_RX		2
-#define DELUGE_STATE_TX		3
+#define DELUGE_STATE_MAINTAIN 1
+#define DELUGE_STATE_RX   2
+#define DELUGE_STATE_TX   3
 
-#define CONST_LAMBDA		2
-#define CONST_ALPHA		0.5
+#define CONST_LAMBDA    2
+#define CONST_ALPHA   0.5
 
-#define CONST_OMEGA		8
-#define ESTIMATED_TX_TIME	(CLOCK_SECOND)
+#define CONST_OMEGA   8
+#define ESTIMATED_TX_TIME (CLOCK_SECOND)
 
 typedef uint8_t deluge_object_id_t;
 
@@ -122,7 +122,6 @@ struct deluge_msg_packet {
   uint16_t crc;
   char str[30];
   int cfs_fd;
-  struct deluge_page *pages;
   deluge_object_id_t object_id;
   unsigned char payload[S_PKT];
 };
@@ -160,6 +159,10 @@ struct deluge_page {
   uint8_t flags;
   uint8_t version;
 };
+
+struct memb{
+  
+}
 
 int deluge_disseminate(char *file, unsigned version);
 
