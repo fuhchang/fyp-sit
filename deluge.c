@@ -104,6 +104,7 @@ PROCESS(deluge_process, "Deluge");
 static void
 transition(int state)
 {
+
   if(state != deluge_state) {
     switch(deluge_state) {
     case DELUGE_STATE_MAINTAIN:
@@ -205,8 +206,7 @@ init_object(struct deluge_object *obj, char *filename, unsigned version)
   obj->current_rx_page = 0;
   obj->nrequests = 0;
   obj->tx_set = 0;
-  printf("page size: %d\n", sizeof(*obj->pages));
-  printf("page count: %d\n", OBJECT_PAGE_COUNT(*obj));
+
   obj->pages = malloc(OBJECT_PAGE_COUNT(*obj) * sizeof(*obj->pages));
   if(obj->pages == NULL) {
     printf("malloc failed\n");
@@ -245,7 +245,7 @@ send_request(void *arg)
 {
   struct deluge_object *obj;
   struct deluge_msg_request request;
-
+ 
   obj = (struct deluge_object *)arg;
 
   request.cmd = DELUGE_CMD_REQUEST;
@@ -298,7 +298,6 @@ check node version
 static void
 handle_summary(struct deluge_msg_summary *msg, const rimeaddr_t *sender)
 {
-  printf("part 0\n");
   int highest_available, i;
   clock_time_t oldest_request, oldest_data, now;
   struct deluge_page *page;
@@ -318,6 +317,7 @@ handle_summary(struct deluge_msg_summary *msg, const rimeaddr_t *sender)
   }
 
   /* Deluge M.5 */
+
   if(msg->version == current_object.update_version &&
      msg->highest_available > highest_available) {
     if(msg->highest_available > OBJECT_PAGE_COUNT(current_object)) {
@@ -361,7 +361,7 @@ send_page(struct deluge_object *obj, unsigned pagenum)
   unsigned char buf[S_PAGE];
   struct deluge_msg_packet pkt;
   unsigned char *cp;
-
+  
   pkt.cmd = DELUGE_CMD_PACKET;
   pkt.pagenum = pagenum;
   pkt.version = obj->pages[pagenum].version;
@@ -370,7 +370,7 @@ send_page(struct deluge_object *obj, unsigned pagenum)
   pkt.crc = 0;
   pkt.cfs_fd = obj->cfs_fd;
   read_page(obj, pagenum, buf);
-
+  printf("pkt version %d\n",obj->pages[pagenum].version);
   /* Divide the page into packets and send them one at a time. */
   for(cp = buf; cp + S_PKT <= (unsigned char *)&buf[S_PAGE]; cp += S_PKT) {
     if(obj->tx_set & (1 << pkt.packetnum)) {
@@ -390,7 +390,7 @@ static void
 tx_callback(void *arg)
 {
   struct deluge_object *obj;
-
+   printf("callback time\n");
   obj = (struct deluge_object *)arg;
   if(obj->current_tx_page >= 0 && obj->tx_set) {
     send_page(obj, obj->current_tx_page);
@@ -413,12 +413,14 @@ handle incoming request
 static void
 handle_request(struct deluge_msg_request *msg)
 {
-  printf("part 1\n");
+  printf("recevied request\n");
   int highest_available;
+
   if(msg->pagenum >= OBJECT_PAGE_COUNT(current_object)) {
+
     return;
   }
-
+  
   if(msg->version != current_object.version) {
     neighbor_inconsistency = 1;
   }
@@ -426,7 +428,8 @@ handle_request(struct deluge_msg_request *msg)
   highest_available = highest_available_page(&current_object);
 
   /* Deluge M.6 */
-  if(msg->version == current_object.version &&
+ 
+  if(msg->version < current_object.version &&
       msg->pagenum <= highest_available) {
     current_object.pages[msg->pagenum].last_request = clock_time();
 
@@ -437,10 +440,11 @@ handle_request(struct deluge_msg_request *msg)
       current_object.current_tx_page = msg->pagenum;
       current_object.tx_set = msg->request_set;
     }
-
+    
     transition(DELUGE_STATE_TX);
-    ctimer_set(&tx_timer, CLOCK_SECOND, tx_callback, &current_object);
+    ctimer_set(&tx_timer, CLOCK_SECOND, tx_callback, &current_object);    
   }
+
 }
 /*
 handle recevied packet
@@ -451,14 +455,13 @@ handle_packet(struct deluge_msg_packet *msg)
   struct deluge_page *page;
   uint16_t crc;
   struct deluge_msg_packet packet;
-  printf("handling packing!!");
-  printf("MSG: %d\n",msg->version);
+
   memcpy(&packet, msg, sizeof(packet));
 
   PRINTF("Incoming packet for object id %u, version %u, page %u, packet num %u!\n",
 	(unsigned)packet.object_id, (unsigned)packet.version,
 	(unsigned)packet.pagenum, (unsigned)packet.packetnum);
-
+  
   if(packet.pagenum != current_object.current_rx_page) {
     return;
   }
@@ -468,7 +471,9 @@ handle_packet(struct deluge_msg_packet *msg)
   }
 
   page = &current_object.pages[packet.pagenum];
-  if(packet.version == page->version && !(page->flags & PAGE_COMPLETE)) {
+  printf("pack ver %d page ver %d\n", packet.version, page->version);
+  if(packet.version == 1/*page->version*/ && !(page->flags & PAGE_COMPLETE)) {
+     printf("getting packet\n");
     memcpy(&current_object.current_page[S_PKT * packet.packetnum],
 	packet.payload, S_PKT);
 
@@ -482,12 +487,50 @@ handle_packet(struct deluge_msg_packet *msg)
     page->packet_set |= (1 << packet.packetnum);
 
     if(page->packet_set == ALL_PACKETS) {
+      printf("all packet\n");
       /* This is the last packet of the requested page; stop streaming. */
       packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
 			 PACKETBUF_ATTR_PACKET_TYPE_STREAM_END);
       //int ret = elfloader_load(msg>cfs_fd);
       //printf("ret %d\n", ret);
-      write_page(&current_object, packet.pagenum, current_object.current_page);
+      int fd = write_page(&current_object, packet.pagenum, current_object.current_page);
+      int ret = elfloader_load(fd);
+      cfs_close(fd);
+      printf("fd %d\n",fd);
+       int i;
+       char *print, *symbol;
+     switch(ret) {
+    case ELFLOADER_OK:
+         print = "elf loader";
+         break;
+    case ELFLOADER_BAD_ELF_HEADER:
+      print = "Bad ELF header";
+      break;
+    case ELFLOADER_NO_SYMTAB:
+      print = "No symbol table";
+      break;
+    case ELFLOADER_NO_STRTAB:
+      print = "No string table";
+      break;
+    case ELFLOADER_NO_TEXT:
+      print = "No text segment";
+      break;
+    case ELFLOADER_SYMBOL_NOT_FOUND:
+      print = "Symbol not found: ";
+      symbol = elfloader_unknown;
+      break;
+    case ELFLOADER_SEGMENT_NOT_FOUND:
+      print = "Segment not found: ";
+      symbol = elfloader_unknown;
+      break;
+    case ELFLOADER_NO_STARTPOINT:
+      print = "No starting point";
+      break;
+    default:
+      print = "Unknown return code from the ELF loader (internal bug)";
+      break;
+     } 
+     printf("message: %s symbol: %s\n", print, symbol);
       page->version = packet.version;
       page->flags = PAGE_COMPLETE;
       PRINTF("Page %u completed\n", packet.pagenum);
@@ -547,7 +590,6 @@ handle the recevied packet
 static void
 handle_profile(struct deluge_msg_profile *msg)
 {
-  printf("part 3\n");
   int i;
   int npages;
   struct deluge_object *obj;
@@ -593,6 +635,7 @@ handle_profile(struct deluge_msg_profile *msg)
     init_page(obj, i, 0);
   }
   printf("Str %s\n", msg->str);
+
   obj->current_rx_page = highest_available_page(obj);
   obj->update_version = msg->version;
   
@@ -609,14 +652,12 @@ command_dispatcher(const rimeaddr_t *sender)
   char *msg;
   int len;
   struct deluge_msg_profile *profile;
-
   msg = packetbuf_dataptr();  
   len = packetbuf_datalen();
   if(len < 1)
     return;
   switch(msg[0]) {
   case DELUGE_CMD_SUMMARY:
-
     if(len >= sizeof(struct deluge_msg_summary))
       handle_summary((struct deluge_msg_summary *)msg, sender);
     break;
@@ -629,7 +670,6 @@ command_dispatcher(const rimeaddr_t *sender)
       handle_packet((struct deluge_msg_packet *)msg);
     break;
   case DELUGE_CMD_PROFILE:
-
     profile = (struct deluge_msg_profile *)msg;
     if(len >= sizeof(*profile) &&
        len >= sizeof(*profile) + profile->npages * profile->version_vector[0])
@@ -643,12 +683,13 @@ command_dispatcher(const rimeaddr_t *sender)
 static void
 unicast_recv(struct unicast_conn *c, const rimeaddr_t *sender)
 {
+  printf("unicast\n");
   command_dispatcher(sender);
 }
 
 static void
 broadcast_recv(struct broadcast_conn *c, const rimeaddr_t *sender)
-{
+{ 
   command_dispatcher(sender);
 }
 
@@ -657,7 +698,8 @@ deluge_disseminate(char *file, unsigned version)
 {
   /* This implementation disseminates at most one object. */
   int result = init_object(&current_object, file, version);
-  if(next_object_id > 0 || result  < 0) {
+  if(result  < 0) {
+    printf("next object id %d\n",next_object_id);
     return -1;
   }
   process_start(&deluge_process, file);
@@ -676,7 +718,7 @@ PROCESS_THREAD(deluge_process, ev, data)
   PROCESS_BEGIN();
   
   deluge_event = process_alloc_event();
-
+  
   broadcast_open(&deluge_broadcast, DELUGE_BROADCAST_CHANNEL, &broadcast_call);
   unicast_open(&deluge_uc, DELUGE_UNICAST_CHANNEL, &unicast_call);
   r_interval = T_LOW;

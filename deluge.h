@@ -122,6 +122,7 @@ struct deluge_msg_packet {
   uint16_t crc;
   char str[30];
   int cfs_fd;
+  struct deluge_page *pages;
   deluge_object_id_t object_id;
   unsigned char payload[S_PKT];
 };

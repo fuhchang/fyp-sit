@@ -75,8 +75,8 @@ AUTOSTART_PROCESSES(&deluge_test_process);
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(deluge_test_process, ev, data)
 {
-  int fd, r, fd_file;
-  char buf[2000];
+
+  int fd, fd_file;
   char *file = "hello-world.ce";
   static struct etimer et;
   PROCESS_BEGIN();
@@ -87,10 +87,7 @@ PROCESS_THREAD(deluge_test_process, ev, data)
  } else {
    printf("Non-sink node: trying to recieve file.\n");
  }
-  
- 
 
-  
     int ret;
     char *print, *symbol;
     deluge_disseminate(file, node_id == SINK_ID);
@@ -119,16 +116,77 @@ case ELFLOADER_OK:
  }
  autostart_start(elfloader_autostart_processes);
          break;
-
-default:
- printf("Unkown return code from ELF loader (internal bug)\n");
-          break;
+ case ELFLOADER_BAD_ELF_HEADER:
+      print = "Bad ELF header";
+      break;
+    case ELFLOADER_NO_SYMTAB:
+      print = "No symbol table";
+      break;
+    case ELFLOADER_NO_STRTAB:
+      print = "No string table";
+      break;
+    case ELFLOADER_NO_TEXT:
+      print = "No text segment";
+      break;
+    case ELFLOADER_SYMBOL_NOT_FOUND:
+      print = "Symbol not found: ";
+      symbol = elfloader_unknown;
+      break;
+    case ELFLOADER_SEGMENT_NOT_FOUND:
+      print = "Segment not found: ";
+      symbol = elfloader_unknown;
+      break;
+    case ELFLOADER_NO_STARTPOINT:
+      print = "No starting point";
+      break;
+    default:
+      print = "Unknown return code from the ELF loader (internal bug)";
+      break;
      } 
+     printf("message: %s symbol: %s\n", print, symbol);
    }
  }
  etimer_reset(&et);
-  
-  
+   int fd = cfs_open(file, CFS_READ);
+   int loadResult = elfloader_load(fd);
+   int j;
+   printf("fd %d\n",fd);
+   switch(loadResult) {
+case ELFLOADER_OK:
+ for(j=0; elfloader_autostart_processes[j] != NULL; j++) {
+   printf("exec: starting process %s. \n", 
+  elfloader_autostart_processes[j]->name);
+ }
+ autostart_start(elfloader_autostart_processes);
+         break;
+ case ELFLOADER_BAD_ELF_HEADER:
+      print = "Bad ELF header";
+      break;
+    case ELFLOADER_NO_SYMTAB:
+      print = "No symbol table";
+      break;
+    case ELFLOADER_NO_STRTAB:
+      print = "No string table";
+      break;
+    case ELFLOADER_NO_TEXT:
+      print = "No text segment";
+      break;
+    case ELFLOADER_SYMBOL_NOT_FOUND:
+      print = "Symbol not found: ";
+      symbol = elfloader_unknown;
+      break;
+    case ELFLOADER_SEGMENT_NOT_FOUND:
+      print = "Segment not found: ";
+      symbol = elfloader_unknown;
+      break;
+    case ELFLOADER_NO_STARTPOINT:
+      print = "No starting point";
+      break;
+    default:
+      print = "Unknown return code from the ELF loader (internal bug)";
+      break;
+     } 
+     printf("message: %s symbol: %s\n", print, symbol);
 
   PROCESS_END();
 }
