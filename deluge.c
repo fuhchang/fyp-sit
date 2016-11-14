@@ -196,6 +196,9 @@ init_object(struct deluge_object *obj, char *filename, unsigned version)
   int i;
 
   obj->cfs_fd = cfs_open(filename, CFS_READ | CFS_WRITE);
+
+   
+
   if(obj->cfs_fd < 0) {
     return -1;
   }  
@@ -497,7 +500,7 @@ handle_packet(struct deluge_msg_packet *msg)
       int ret = elfloader_load(fd);
       cfs_close(fd);
       printf("fd %d\n",fd);
-       int i;
+      
        char *print, *symbol;
      switch(ret) {
     case ELFLOADER_OK:

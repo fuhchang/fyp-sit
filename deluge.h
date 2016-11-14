@@ -160,10 +160,6 @@ struct deluge_page {
   uint8_t version;
 };
 
-struct memb{
-  
-}
-
 int deluge_disseminate(char *file, unsigned version);
 
 #endif

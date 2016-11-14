@@ -1,41 +1,3 @@
-/*
- * Copyright (c) 2007, Swedish Institute of Computer Science.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the Institute nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE INSTITUTE AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE INSTITUTE OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- * This file is part of the Contiki operating system.
- *
- */
-
-/**
- * \file
- *         A test program for Deluge.
- * \author
- *         Nicolas Tsiftes <nvt@sics.se>
- */
 
 #include "contiki.h"
 #include "cfs/cfs.h"
@@ -146,11 +108,15 @@ case ELFLOADER_OK:
      printf("message: %s symbol: %s\n", print, symbol);
    }
  }
- etimer_reset(&et);
-   int fd = cfs_open(file, CFS_READ);
-   int loadResult = elfloader_load(fd);
+ if(elfloader_autostart_processes != NULL) {
+    autostart_exit(elfloader_autostart_processes);
+  }
+   etimer_reset(&et);
+   int cfs_fd = cfs_open(file, CFS_READ);
+   int loadResult = elfloader_load(cfs_fd);
    int j;
-   printf("fd %d\n",fd);
+   char *printT, *symbolf;
+   printf("result: %d\n", loadResult);
    switch(loadResult) {
 case ELFLOADER_OK:
  for(j=0; elfloader_autostart_processes[j] != NULL; j++) {
@@ -160,34 +126,33 @@ case ELFLOADER_OK:
  autostart_start(elfloader_autostart_processes);
          break;
  case ELFLOADER_BAD_ELF_HEADER:
-      print = "Bad ELF header";
+      printT = "Bad ELF header";
       break;
     case ELFLOADER_NO_SYMTAB:
-      print = "No symbol table";
+      printT = "No symbol table";
       break;
     case ELFLOADER_NO_STRTAB:
-      print = "No string table";
+      printT = "No string table";
       break;
     case ELFLOADER_NO_TEXT:
-      print = "No text segment";
+      printT = "No text segment";
       break;
     case ELFLOADER_SYMBOL_NOT_FOUND:
-      print = "Symbol not found: ";
-      symbol = elfloader_unknown;
+      printT = "Symbol not found: ";
+      symbolf = elfloader_unknown;
       break;
     case ELFLOADER_SEGMENT_NOT_FOUND:
-      print = "Segment not found: ";
-      symbol = elfloader_unknown;
+      printT = "Segment not found: ";
+      symbolf = elfloader_unknown;
       break;
     case ELFLOADER_NO_STARTPOINT:
-      print = "No starting point";
+      printT = "No starting point";
       break;
     default:
-      print = "Unknown return code from the ELF loader (internal bug)";
+      printT = "Unknown return code from the ELF loader (internal bug)";
       break;
      } 
-     printf("message: %s symbol: %s\n", print, symbol);
-
+     printf("Deluge: message: %s symbol: %s\n", printT, symbol);
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
