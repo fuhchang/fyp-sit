@@ -38,7 +38,6 @@ AUTOSTART_PROCESSES(&deluge_test_process);
 PROCESS_THREAD(deluge_test_process, ev, data)
 {
 
-  int fd, fd_file;
   char *file = "hello-world.ce";
   static struct etimer et;
   PROCESS_BEGIN();
@@ -50,16 +49,14 @@ PROCESS_THREAD(deluge_test_process, ev, data)
    printf("Non-sink node: trying to recieve file.\n");
  }
 
-    int ret;
+    
     char *print, *symbol;
     deluge_disseminate(file, node_id == SINK_ID);
-    ret = elfloader_load(fd_file);
-    cfs_close(fd_file);
     
 etimer_set(&et, CLOCK_SECOND * 5);
  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
  if(node_id != SINK_ID) {
-   fd = cfs_open(file, CFS_READ);
+  int fd = cfs_open(file, CFS_READ);
    if(fd < 0) {
      printf("failed to open the test file\n");
    } else {
@@ -108,11 +105,9 @@ case ELFLOADER_OK:
      printf("message: %s symbol: %s\n", print, symbol);
    }
  }
- if(elfloader_autostart_processes != NULL) {
-    autostart_exit(elfloader_autostart_processes);
-  }
-   etimer_reset(&et);
-   int cfs_fd = cfs_open(file, CFS_READ);
+
+ etimer_reset(&et);
+   int cfs_fd = cfs_open(file, CFS_READ | CFS_WRITE);
    int loadResult = elfloader_load(cfs_fd);
    int j;
    char *printT, *symbolf;
@@ -152,7 +147,7 @@ case ELFLOADER_OK:
       printT = "Unknown return code from the ELF loader (internal bug)";
       break;
      } 
-     printf("Deluge: message: %s symbol: %s\n", printT, symbol);
+     printf("Deluge: message: %s symbol: %s\n", printT, symbolf);
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
