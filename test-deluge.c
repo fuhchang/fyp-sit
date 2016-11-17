@@ -53,61 +53,11 @@ PROCESS_THREAD(deluge_test_process, ev, data)
     char *print, *symbol;
     deluge_disseminate(file, node_id == SINK_ID);
     
-etimer_set(&et, CLOCK_SECOND * 5);
+ etimer_set(&et, CLOCK_SECOND * 5);
  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
- if(node_id != SINK_ID) {
-  int fd = cfs_open(file, CFS_READ);
-   if(fd < 0) {
-     printf("failed to open the test file\n");
-   } else {
-     printf("Start dynamic loading\n");
-     int ret = elfloader_load(fd);
-     printf("%d\n", ret); 
-
-     cfs_close(fd);
-
-     int i;
-     switch(ret) {
-case ELFLOADER_OK:
- for(i=0; elfloader_autostart_processes[i] != NULL; i++) {
-   printf("exec: starting process %s. \n", 
-  elfloader_autostart_processes[i]->name);
- }
- autostart_start(elfloader_autostart_processes);
-         break;
- case ELFLOADER_BAD_ELF_HEADER:
-      print = "Bad ELF header";
-      break;
-    case ELFLOADER_NO_SYMTAB:
-      print = "No symbol table";
-      break;
-    case ELFLOADER_NO_STRTAB:
-      print = "No string table";
-      break;
-    case ELFLOADER_NO_TEXT:
-      print = "No text segment";
-      break;
-    case ELFLOADER_SYMBOL_NOT_FOUND:
-      print = "Symbol not found: ";
-      symbol = elfloader_unknown;
-      break;
-    case ELFLOADER_SEGMENT_NOT_FOUND:
-      print = "Segment not found: ";
-      symbol = elfloader_unknown;
-      break;
-    case ELFLOADER_NO_STARTPOINT:
-      print = "No starting point";
-      break;
-    default:
-      print = "Unknown return code from the ELF loader (internal bug)";
-      break;
-     } 
-     printf("message: %s symbol: %s\n", print, symbol);
-   }
- }
-
- etimer_reset(&et);
-   int cfs_fd = cfs_open(file, CFS_READ | CFS_WRITE);
+ //etimer_reset(&et);
+ if(node_id == SINK_ID){
+    int cfs_fd = cfs_open(file, CFS_READ | CFS_WRITE);
    int loadResult = elfloader_load(cfs_fd);
    int j;
    char *printT, *symbolf;
@@ -147,7 +97,12 @@ case ELFLOADER_OK:
       printT = "Unknown return code from the ELF loader (internal bug)";
       break;
      } 
-     printf("Deluge: message: %s symbol: %s\n", printT, symbolf);
+     if(loadResult != ELFLOADER_OK){
+      printf("Deluge: message: %s symbol: %s\n", printT, symbolf);
+     }
+     
+ }
+
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

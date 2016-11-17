@@ -360,7 +360,6 @@ send page(packet of the code) to other nodes
 static void
 send_page(struct deluge_object *obj, unsigned pagenum)
 {
-  printf("sending page\n");
   unsigned char buf[S_PAGE];
   struct deluge_msg_packet pkt;
   unsigned char *cp;
@@ -373,7 +372,6 @@ send_page(struct deluge_object *obj, unsigned pagenum)
   pkt.crc = 0;
   pkt.cfs_fd = obj->cfs_fd;
   read_page(obj, pagenum, buf);
-  printf("pkt version %d\n",obj->pages[pagenum].version);
   /* Divide the page into packets and send them one at a time. */
   for(cp = buf; cp + S_PKT <= (unsigned char *)&buf[S_PAGE]; cp += S_PKT) {
     if(obj->tx_set & (1 << pkt.packetnum)) {
@@ -393,7 +391,6 @@ static void
 tx_callback(void *arg)
 {
   struct deluge_object *obj;
-   printf("callback time\n");
   obj = (struct deluge_object *)arg;
   if(obj->current_tx_page >= 0 && obj->tx_set) {
     send_page(obj, obj->current_tx_page);
@@ -416,7 +413,6 @@ handle incoming request
 static void
 handle_request(struct deluge_msg_request *msg)
 {
-  printf("recevied request\n");
   int highest_available;
 
   if(msg->pagenum >= OBJECT_PAGE_COUNT(current_object)) {
@@ -474,9 +470,7 @@ handle_packet(struct deluge_msg_packet *msg)
   }
 
   page = &current_object.pages[packet.pagenum];
-  printf("pack ver %d page ver %d\n", packet.version, page->version);
   if(packet.version == 1/*page->version*/ && !(page->flags & PAGE_COMPLETE)) {
-     printf("getting packet\n");
     memcpy(&current_object.current_page[S_PKT * packet.packetnum],
 	packet.payload, S_PKT);
 
@@ -490,50 +484,54 @@ handle_packet(struct deluge_msg_packet *msg)
     page->packet_set |= (1 << packet.packetnum);
 
     if(page->packet_set == ALL_PACKETS) {
-      printf("all packet\n");
       /* This is the last packet of the requested page; stop streaming. */
       packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
 			 PACKETBUF_ATTR_PACKET_TYPE_STREAM_END);
       //int ret = elfloader_load(msg>cfs_fd);
       //printf("ret %d\n", ret);
-      int fd = write_page(&current_object, packet.pagenum, current_object.current_page);
-      int ret = elfloader_load(fd);
-      cfs_close(fd);
-      printf("fd %d\n",fd);
-      
-       char *print, *symbol;
-     switch(ret) {
-    case ELFLOADER_OK:
-         print = "elf loader";
+      write_page(&current_object, packet.pagenum, current_object.current_page);
+      int cfs_fd = cfs_open(current_object.filename, CFS_READ | CFS_WRITE);
+   int loadResult = elfloader_load(cfs_fd);
+   int j;
+   char *printT, *symbolf;
+   switch(loadResult) {
+case ELFLOADER_OK:
+ for(j=0; elfloader_autostart_processes[j] != NULL; j++) {
+   printf("exec: starting process %s. \n", 
+  elfloader_autostart_processes[j]->name);
+ }
+ autostart_start(elfloader_autostart_processes);
          break;
-    case ELFLOADER_BAD_ELF_HEADER:
-      print = "Bad ELF header";
+ case ELFLOADER_BAD_ELF_HEADER:
+      printT = "Bad ELF header";
       break;
     case ELFLOADER_NO_SYMTAB:
-      print = "No symbol table";
+      printT = "No symbol table";
       break;
     case ELFLOADER_NO_STRTAB:
-      print = "No string table";
+      printT = "No string table";
       break;
     case ELFLOADER_NO_TEXT:
-      print = "No text segment";
+      printT = "No text segment";
       break;
     case ELFLOADER_SYMBOL_NOT_FOUND:
-      print = "Symbol not found: ";
-      symbol = elfloader_unknown;
+      printT = "Symbol not found: ";
+      symbolf = elfloader_unknown;
       break;
     case ELFLOADER_SEGMENT_NOT_FOUND:
-      print = "Segment not found: ";
-      symbol = elfloader_unknown;
+      printT = "Segment not found: ";
+      symbolf = elfloader_unknown;
       break;
     case ELFLOADER_NO_STARTPOINT:
-      print = "No starting point";
+      printT = "No starting point";
       break;
     default:
-      print = "Unknown return code from the ELF loader (internal bug)";
+      printT = "Unknown return code from the ELF loader (internal bug)";
       break;
      } 
-     printf("message: %s symbol: %s\n", print, symbol);
+     if(loadResult != ELFLOADER_OK){
+      printf("Deluge: message: %s symbol: %s\n", printT, symbolf);
+     }
       page->version = packet.version;
       page->flags = PAGE_COMPLETE;
       PRINTF("Page %u completed\n", packet.pagenum);
@@ -578,7 +576,7 @@ send_profile(struct deluge_object *obj)
     msg->version = obj->version;
     msg->npages = OBJECT_PAGE_COUNT(*obj);
     msg->object_id = obj->object_id;
-    strcpy(msg->str, "hello world2!!");
+    strcpy(msg->str, obj->filename);
     for(i = 0; i < msg->npages; i++) {
       msg->version_vector[i] = obj->pages[i].version;
     }
@@ -637,8 +635,6 @@ handle_profile(struct deluge_msg_profile *msg)
   for(; i < msg->npages; i++) {
     init_page(obj, i, 0);
   }
-  printf("Str %s\n", msg->str);
-
   obj->current_rx_page = highest_available_page(obj);
   obj->update_version = msg->version;
   
@@ -686,7 +682,6 @@ command_dispatcher(const rimeaddr_t *sender)
 static void
 unicast_recv(struct unicast_conn *c, const rimeaddr_t *sender)
 {
-  printf("unicast\n");
   command_dispatcher(sender);
 }
 
