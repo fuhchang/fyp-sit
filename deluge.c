@@ -487,8 +487,6 @@ handle_packet(struct deluge_msg_packet *msg)
       /* This is the last packet of the requested page; stop streaming. */
       packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
 			 PACKETBUF_ATTR_PACKET_TYPE_STREAM_END);
-      //int ret = elfloader_load(msg>cfs_fd);
-      //printf("ret %d\n", ret);
       write_page(&current_object, packet.pagenum, current_object.current_page);
       int cfs_fd = cfs_open(current_object.filename, CFS_READ | CFS_WRITE);
    int loadResult = elfloader_load(cfs_fd);
