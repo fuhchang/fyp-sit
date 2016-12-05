@@ -248,7 +248,7 @@ send_request(void *arg)
 {
   struct deluge_object *obj;
   struct deluge_msg_request request;
- 
+  printf("sending request\n");
   obj = (struct deluge_object *)arg;
 
   request.cmd = DELUGE_CMD_REQUEST;
@@ -655,18 +655,22 @@ command_dispatcher(const rimeaddr_t *sender)
     return;
   switch(msg[0]) {
   case DELUGE_CMD_SUMMARY:
+
     if(len >= sizeof(struct deluge_msg_summary))
       handle_summary((struct deluge_msg_summary *)msg, sender);
     break;
   case DELUGE_CMD_REQUEST:
+  
     if(len >= sizeof(struct deluge_msg_request))
       handle_request((struct deluge_msg_request *)msg);
     break;
   case DELUGE_CMD_PACKET:
+  
     if(len >= sizeof(struct deluge_msg_packet))
       handle_packet((struct deluge_msg_packet *)msg);
     break;
   case DELUGE_CMD_PROFILE:
+
     profile = (struct deluge_msg_profile *)msg;
     if(len >= sizeof(*profile) &&
        len >= sizeof(*profile) + profile->npages * profile->version_vector[0])
@@ -680,12 +684,14 @@ command_dispatcher(const rimeaddr_t *sender)
 static void
 unicast_recv(struct unicast_conn *c, const rimeaddr_t *sender)
 {
+
   command_dispatcher(sender);
 }
 
 static void
 broadcast_recv(struct broadcast_conn *c, const rimeaddr_t *sender)
 { 
+ 
   command_dispatcher(sender);
 }
 

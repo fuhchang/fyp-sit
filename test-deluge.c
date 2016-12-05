@@ -39,24 +39,33 @@ PROCESS_THREAD(deluge_test_process, ev, data)
 {
 
   char *file = "hello-world.ce";
+  char *file2 = "hello-world2.ce";
   static struct etimer et;
   PROCESS_BEGIN();
  
   
   if(node_id == SINK_ID) {
    printf("Sink node: trying to transmit file.\n");
- } else {
+ } else if(node_id == 2){
+    printf("Sybil attacking.\n");
+ }else {
    printf("Non-sink node: trying to recieve file.\n");
  }
 
     
     char *print, *symbol;
-    deluge_disseminate(file, node_id == SINK_ID);
+    if(node_id == 2){
+        deluge_disseminate(file2, node_id == 2);
+    }else{
+      deluge_disseminate(file, node_id == SINK_ID);
+    }
+    
     
  etimer_set(&et, CLOCK_SECOND * 5);
  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
  //etimer_reset(&et);
- if(node_id == SINK_ID){
+ /*
+ if(node_id == SINK_ID ){
     int cfs_fd = cfs_open(file, CFS_READ | CFS_WRITE);
    int loadResult = elfloader_load(cfs_fd);
    int j;
@@ -102,7 +111,7 @@ case ELFLOADER_OK:
      }
      
  }
-
+  */
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/
