@@ -101,6 +101,7 @@ struct deluge_msg_summary {
   uint8_t version;
   uint8_t highest_available;
   char str[30];
+  unsigned nodeid;
   deluge_object_id_t object_id;
 };
 
@@ -110,7 +111,7 @@ struct deluge_msg_request {
   uint8_t pagenum;
   uint8_t request_set;
   char str[30];
-
+  unsigned nodeid;
   deluge_object_id_t object_id;
 };
 
@@ -122,6 +123,7 @@ struct deluge_msg_packet {
   uint16_t crc;
   char str[30];
   int cfs_fd;
+  char *filename;
   deluge_object_id_t object_id;
   unsigned char payload[S_PKT];
 };
@@ -160,6 +162,6 @@ struct deluge_page {
   uint8_t version;
 };
 
-int deluge_disseminate(char *file, unsigned version);
+int deluge_disseminate(char *file, unsigned version, unsigned node);
 
 #endif

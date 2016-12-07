@@ -97,7 +97,7 @@ static void unicast_recv(struct unicast_conn *, const rimeaddr_t *);
 
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv, NULL};
 static const struct unicast_callbacks unicast_call = {unicast_recv, NULL};
-
+static unsigned nodeID;
 /* The Deluge process manages the main Deluge timer. */
 PROCESS(deluge_process, "Deluge");
 
@@ -256,7 +256,7 @@ send_request(void *arg)
   request.version = obj->pages[request.pagenum].version;
   request.request_set = ~obj->pages[obj->current_rx_page].packet_set;
   request.object_id = obj->object_id;
-
+  request.nodeid = nodeID;
   PRINTF("Sending request for page %d, version %u, request_set %u\n", 
 	request.pagenum, request.version, request.request_set);
   packetbuf_copyfrom(&request, sizeof(request));
@@ -278,17 +278,16 @@ static void
 advertise_summary(struct deluge_object *obj)
 {
   struct deluge_msg_summary summary;
-
+ 
   if(recv_adv >= CONST_K) {
     ctimer_stop(&summary_timer);
     return;
   }
-
   summary.cmd = DELUGE_CMD_SUMMARY;
   summary.version = obj->update_version;
   summary.highest_available = highest_available_page(obj);
   summary.object_id = obj->object_id;
-
+  summary.nodeid = nodeID;
   PRINTF("Advertising summary for object id %u: version=%u, available=%u\n",
 	(unsigned)obj->object_id, summary.version, summary.highest_available);
 
@@ -327,7 +326,6 @@ handle_summary(struct deluge_msg_summary *msg, const rimeaddr_t *sender)
       PRINTF("Error: highest available is above object page count!\n");
       return;
     }
-
     oldest_request = oldest_data = now = clock_time();
     for(i = 0; i < msg->highest_available; i++) {
       page = &current_object.pages[i];
@@ -363,7 +361,7 @@ send_page(struct deluge_object *obj, unsigned pagenum)
   unsigned char buf[S_PAGE];
   struct deluge_msg_packet pkt;
   unsigned char *cp;
-  
+  printf("send page filename %s\n",obj->filename);
   pkt.cmd = DELUGE_CMD_PACKET;
   pkt.pagenum = pagenum;
   pkt.version = obj->pages[pagenum].version;
@@ -390,8 +388,10 @@ this is where it send file
 static void
 tx_callback(void *arg)
 {
+
   struct deluge_object *obj;
   obj = (struct deluge_object *)arg;
+  printf("callback filename %s\n",obj->filename);
   if(obj->current_tx_page >= 0 && obj->tx_set) {
     send_page(obj, obj->current_tx_page);
     /* Deluge T.2. */
@@ -415,6 +415,7 @@ handle_request(struct deluge_msg_request *msg)
 {
   int highest_available;
 
+  printf("request by %d\n",msg->nodeid);
   if(msg->pagenum >= OBJECT_PAGE_COUNT(current_object)) {
 
     return;
@@ -456,7 +457,7 @@ handle_packet(struct deluge_msg_packet *msg)
   struct deluge_msg_packet packet;
 
   memcpy(&packet, msg, sizeof(packet));
-
+  //printf("packet recevied\n");
   PRINTF("Incoming packet for object id %u, version %u, page %u, packet num %u!\n",
 	(unsigned)packet.object_id, (unsigned)packet.version,
 	(unsigned)packet.pagenum, (unsigned)packet.packetnum);
@@ -487,8 +488,10 @@ handle_packet(struct deluge_msg_packet *msg)
       /* This is the last packet of the requested page; stop streaming. */
       packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
 			 PACKETBUF_ATTR_PACKET_TYPE_STREAM_END);
+      strcpy(current_object.filename, msg->filename);
       write_page(&current_object, packet.pagenum, current_object.current_page);
       int cfs_fd = cfs_open(current_object.filename, CFS_READ | CFS_WRITE);
+      printf("filename %s\n",current_object.filename);
    int loadResult = elfloader_load(cfs_fd);
    int j;
    char *printT, *symbolf;
@@ -696,15 +699,18 @@ broadcast_recv(struct broadcast_conn *c, const rimeaddr_t *sender)
 }
 
 int
-deluge_disseminate(char *file, unsigned version)
+deluge_disseminate(char *file, unsigned version, unsigned node_id)
 {
   /* This implementation disseminates at most one object. */
-  int result = init_object(&current_object, file, version);
-  if(result  < 0) {
-    printf("next object id %d\n",next_object_id);
-    return -1;
-  }
-  process_start(&deluge_process, file);
+    nodeID = node_id;
+    int result = init_object(&current_object, file, version);
+    if(result  < 0) {
+      printf("next object id %d\n",next_object_id);
+      return -1;
+    }
+
+   process_start(&deluge_process, file);
+
 
   return 0;
 }
@@ -720,7 +726,7 @@ PROCESS_THREAD(deluge_process, ev, data)
   PROCESS_BEGIN();
   
   deluge_event = process_alloc_event();
-  
+ 
   broadcast_open(&deluge_broadcast, DELUGE_BROADCAST_CHANNEL, &broadcast_call);
   unicast_open(&deluge_uc, DELUGE_UNICAST_CHANNEL, &unicast_call);
   r_interval = T_LOW;
@@ -745,6 +751,7 @@ PROCESS_THREAD(deluge_process, ev, data)
     old_summary = 0;
 
     /* Deluge M.1 */
+
     ctimer_set(&summary_timer, r_rand * CLOCK_SECOND,
 	(void *)(void *)advertise_summary, &current_object);
 
@@ -757,7 +764,7 @@ PROCESS_THREAD(deluge_process, ev, data)
 
 exit:
   unicast_close(&deluge_uc);
-  broadcast_close(&deluge_broadcast);
+    broadcast_close(&deluge_broadcast);
   if(current_object.cfs_fd >= 0) {
     cfs_close(current_object.cfs_fd);
   }

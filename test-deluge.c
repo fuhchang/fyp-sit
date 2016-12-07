@@ -26,7 +26,9 @@
 #ifndef SINK_ID
 #define SINK_ID	1
 #endif
-
+#ifndef SYBIL_ID
+#define SYBIL_ID 2
+#endif
 #ifndef FILE_SIZE
 #define FILE_SIZE 1000
 #endif
@@ -53,14 +55,14 @@ PROCESS_THREAD(deluge_test_process, ev, data)
  }
 
     
-    char *print, *symbol;
-    if(node_id == 2){
-        deluge_disseminate(file2, node_id == 2);
+    char *print, *symbol;   
+    //deluge_disseminate(file2, node_id == SYBIL_ID,node_id);
+    //deluge_disseminate(file, node_id == SINK_ID,node_id);
+    if(node_id == SYBIL_ID){
+      deluge_disseminate(file2, node_id == SYBIL_ID,node_id);
     }else{
-      deluge_disseminate(file, node_id == SINK_ID);
+      deluge_disseminate(file, node_id == SYBIL_ID,node_id);
     }
-    
-    
  etimer_set(&et, CLOCK_SECOND * 5);
  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
  //etimer_reset(&et);
