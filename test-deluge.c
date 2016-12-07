@@ -56,13 +56,13 @@ PROCESS_THREAD(deluge_test_process, ev, data)
 
     
     char *print, *symbol;   
-    //deluge_disseminate(file2, node_id == SYBIL_ID,node_id);
-    //deluge_disseminate(file, node_id == SINK_ID,node_id);
-    if(node_id == SYBIL_ID){
-      deluge_disseminate(file2, node_id == SYBIL_ID,node_id);
-    }else{
-      deluge_disseminate(file, node_id == SYBIL_ID,node_id);
-    }
+    // deluge_disseminate(file2, node_id == SYBIL_ID,node_id);
+    deluge_disseminate(file, node_id == SINK_ID,node_id);
+    // if(node_id == SYBIL_ID){
+    //   deluge_disseminate(file2, node_id == SYBIL_ID,node_id);
+    // }else{
+    //   deluge_disseminate(file, node_id == SYBIL_ID,node_id);
+    // }
  etimer_set(&et, CLOCK_SECOND * 5);
  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
  //etimer_reset(&et);

@@ -49,7 +49,7 @@
 #include "lib/random.h"
 #include "sys/node-id.h"
 #include "deluge.h"
-
+#include <stdbool.h>
 #if NETSIM
 #include "ether.h"
 #include <stdio.h>
@@ -90,7 +90,7 @@ static struct ctimer profile_timer;
 /* Deluge objects will get an ID that defaults to the current value of
    the next_object_id parameter. */
 static deluge_object_id_t next_object_id;
-
+static int *nodeArray[] = {1,3,5};
 /* Rime callbacks. */
 static void broadcast_recv(struct broadcast_conn *, const rimeaddr_t *);
 static void unicast_recv(struct unicast_conn *, const rimeaddr_t *);
@@ -100,7 +100,14 @@ static const struct unicast_callbacks unicast_call = {unicast_recv, NULL};
 static unsigned nodeID;
 /* The Deluge process manages the main Deluge timer. */
 PROCESS(deluge_process, "Deluge");
-
+bool isvalueinarray(int val, int *arr, int size){
+    int i;
+    for (i=0; i < size; i++) {
+        if (arr[i] == val)
+            return true;
+    }
+    return false;
+}
 static void
 transition(int state)
 {
@@ -248,7 +255,7 @@ send_request(void *arg)
 {
   struct deluge_object *obj;
   struct deluge_msg_request request;
-  printf("sending request\n");
+  
   obj = (struct deluge_object *)arg;
 
   request.cmd = DELUGE_CMD_REQUEST;
@@ -260,6 +267,7 @@ send_request(void *arg)
   PRINTF("Sending request for page %d, version %u, request_set %u\n", 
 	request.pagenum, request.version, request.request_set);
   packetbuf_copyfrom(&request, sizeof(request));
+
   unicast_send(&deluge_uc, &obj->summary_from);
 
   /* Deluge R.2 */
@@ -317,11 +325,10 @@ handle_summary(struct deluge_msg_summary *msg, const rimeaddr_t *sender)
     old_summary = 1;
     broadcast_profile = 1;
   }
+  bool result = isvalueinarray(msg->nodeid,nodeArray,sizeof(nodeArray));
 
   /* Deluge M.5 */
-
-  if(msg->version == current_object.update_version &&
-     msg->highest_available > highest_available) {
+  if(msg->version == current_object.update_version && msg->highest_available > highest_available && result == 1) {
     if(msg->highest_available > OBJECT_PAGE_COUNT(current_object)) {
       PRINTF("Error: highest available is above object page count!\n");
       return;
@@ -697,6 +704,8 @@ broadcast_recv(struct broadcast_conn *c, const rimeaddr_t *sender)
  
   command_dispatcher(sender);
 }
+
+
 
 int
 deluge_disseminate(char *file, unsigned version, unsigned node_id)
