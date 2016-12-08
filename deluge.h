@@ -125,6 +125,7 @@ struct deluge_msg_packet {
   int cfs_fd;
   char *filename;
   deluge_object_id_t object_id;
+  rimeaddr_t summary_from;
   unsigned char payload[S_PKT];
 };
 

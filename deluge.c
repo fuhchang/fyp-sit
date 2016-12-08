@@ -90,7 +90,7 @@ static struct ctimer profile_timer;
 /* Deluge objects will get an ID that defaults to the current value of
    the next_object_id parameter. */
 static deluge_object_id_t next_object_id;
-static int *nodeArray[] = {1,3,5};
+static int nodeArray[] = {1,3,5};
 /* Rime callbacks. */
 static void broadcast_recv(struct broadcast_conn *, const rimeaddr_t *);
 static void unicast_recv(struct unicast_conn *, const rimeaddr_t *);
@@ -268,7 +268,6 @@ send_request(void *arg)
   PRINTF("Sending request for page %d, version %u, request_set %u\n", 
 	request.pagenum, request.version, request.request_set);
   packetbuf_copyfrom(&request, sizeof(request));
-  printf("summary %s\n",&obj->summary_from);
   unicast_send(&deluge_uc, &obj->summary_from);
 
   /* Deluge R.2 */
@@ -354,12 +353,10 @@ handle_summary(struct deluge_msg_summary *msg, const rimeaddr_t *sender)
     transition(DELUGE_STATE_RX);
 
     if(ctimer_expired(&rx_timer)) {
-      ctimer_set(&rx_timer,
-	CONST_OMEGA * ESTIMATED_TX_TIME + ((unsigned)random_rand() % T_R),
-	send_request, &current_object);
+      ctimer_set(&rx_timer,CONST_OMEGA * ESTIMATED_TX_TIME + ((unsigned)random_rand() % T_R),send_request, &current_object);
     }
   }else if(result == 0){
-    printf("handle summary: you are not part of the network node %d\n",msg->nodeid);
+    // printf("handle summary: you are not part of the network node %d\n",msg->nodeid);
   }
 }
 /*
@@ -387,8 +384,8 @@ send_page(struct deluge_object *obj, unsigned pagenum)
       pkt.crc = crc16_data(cp, S_PKT, 0);
       memcpy(pkt.payload, cp, S_PKT);
       packetbuf_copyfrom(&pkt, sizeof(pkt));
-       broadcast_send(&deluge_broadcast);
-       // unicast_send(&deluge_uc, &obj->summary_from);
+       // broadcast_send(&deluge_broadcast);
+      unicast_send(&deluge_uc, &obj->summary_from);
     }
     pkt.packetnum++;
   }
@@ -423,11 +420,10 @@ tx_callback(void *arg)
 handle incoming request
 */
 static void
-handle_request(struct deluge_msg_request *msg)
+handle_request(struct deluge_msg_request *msg,  const rimeaddr_t *sender)
 {
   int highest_available;
  bool result = isvalueinarray(msg->nodeid,nodeArray,sizeof(nodeArray));
- printf("%d request status %d\n",msg->nodeid, result);
  if(result == 1){
 
   if(msg->pagenum >= OBJECT_PAGE_COUNT(current_object)) {
@@ -453,12 +449,12 @@ handle_request(struct deluge_msg_request *msg)
       current_object.current_tx_page = msg->pagenum;
       current_object.tx_set = msg->request_set;
     }
-    
+    rimeaddr_copy(&current_object.summary_from, sender);
     transition(DELUGE_STATE_TX);
     ctimer_set(&tx_timer, CLOCK_SECOND, tx_callback, &current_object);    
   }
   }else if(result == 0){
-    printf("handle request: you are not part of the network node %d\n",msg->nodeid);
+    // printf("handle request: you are not part of the network node %d\n",msg->nodeid);
   }
 
 }
@@ -471,9 +467,7 @@ handle_packet(struct deluge_msg_packet *msg)
   struct deluge_page *page;
   uint16_t crc;
   struct deluge_msg_packet packet;
-  // printf("handle packet\n");
   memcpy(&packet, msg, sizeof(packet));
-  //printf("packet recevied\n");
   PRINTF("Incoming packet for object id %u, version %u, page %u, packet num %u!\n",
 	(unsigned)packet.object_id, (unsigned)packet.version,
 	(unsigned)packet.pagenum, (unsigned)packet.packetnum);
@@ -507,7 +501,6 @@ handle_packet(struct deluge_msg_packet *msg)
       strcpy(current_object.filename, msg->filename);
       write_page(&current_object, packet.pagenum, current_object.current_page);
       int cfs_fd = cfs_open(current_object.filename, CFS_READ | CFS_WRITE);
-      printf("filename %s\n",current_object.filename);
    int loadResult = elfloader_load(cfs_fd);
    int j;
    char *printT, *symbolf;
@@ -570,7 +563,6 @@ case ELFLOADER_OK:
       /* Deluge R.3 */
       transition(DELUGE_STATE_MAINTAIN);
     } else {
-       printf("all page not recevied\n");
       /* More packets to come. Put lower layers in streaming mode. */
       packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
 			 PACKETBUF_ATTR_PACKET_TYPE_STREAM);
@@ -669,15 +661,15 @@ static void
 command_dispatcher(const rimeaddr_t *sender)
 {
   char *msg;
-  char *test;
   int len;
   struct deluge_msg_profile *profile;
+
   msg = packetbuf_dataptr();  
   len = packetbuf_datalen();
  
   if(len < 1)
     return;
-  // printf("path %d\n", msg[0]);
+ 
   switch(msg[0]) {
   case DELUGE_CMD_SUMMARY:
 
@@ -687,13 +679,11 @@ command_dispatcher(const rimeaddr_t *sender)
   case DELUGE_CMD_REQUEST:
   
     if(len >= sizeof(struct deluge_msg_request))
-      handle_request((struct deluge_msg_request *)msg);
+      handle_request((struct deluge_msg_request *)msg,sender);
     break;
   case DELUGE_CMD_PACKET:
-    printf("recevied packet\n");
     if(len >= sizeof(struct deluge_msg_packet))
       handle_packet((struct deluge_msg_packet *)msg);
-      //handle_packet((struct deluge_msg_packet *)msg);
     break;
   case DELUGE_CMD_PROFILE:
 
