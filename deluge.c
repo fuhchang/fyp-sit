@@ -98,6 +98,7 @@ static void unicast_recv(struct unicast_conn *, const rimeaddr_t *);
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv, NULL};
 static const struct unicast_callbacks unicast_call = {unicast_recv, NULL};
 static unsigned nodeID;
+static  struct deluge_object *packet;
 /* The Deluge process manages the main Deluge timer. */
 PROCESS(deluge_process, "Deluge");
 bool isvalueinarray(int val, int *arr, int size){
@@ -267,7 +268,7 @@ send_request(void *arg)
   PRINTF("Sending request for page %d, version %u, request_set %u\n", 
 	request.pagenum, request.version, request.request_set);
   packetbuf_copyfrom(&request, sizeof(request));
-
+  printf("summary %s\n",&obj->summary_from);
   unicast_send(&deluge_uc, &obj->summary_from);
 
   /* Deluge R.2 */
@@ -357,6 +358,8 @@ handle_summary(struct deluge_msg_summary *msg, const rimeaddr_t *sender)
 	CONST_OMEGA * ESTIMATED_TX_TIME + ((unsigned)random_rand() % T_R),
 	send_request, &current_object);
     }
+  }else if(result == 0){
+    printf("handle summary: you are not part of the network node %d\n",msg->nodeid);
   }
 }
 /*
@@ -369,6 +372,7 @@ send_page(struct deluge_object *obj, unsigned pagenum)
   struct deluge_msg_packet pkt;
   unsigned char *cp;
   printf("send page filename %s\n",obj->filename);
+
   pkt.cmd = DELUGE_CMD_PACKET;
   pkt.pagenum = pagenum;
   pkt.version = obj->pages[pagenum].version;
@@ -383,7 +387,8 @@ send_page(struct deluge_object *obj, unsigned pagenum)
       pkt.crc = crc16_data(cp, S_PKT, 0);
       memcpy(pkt.payload, cp, S_PKT);
       packetbuf_copyfrom(&pkt, sizeof(pkt));
-      broadcast_send(&deluge_broadcast);
+       broadcast_send(&deluge_broadcast);
+       // unicast_send(&deluge_uc, &obj->summary_from);
     }
     pkt.packetnum++;
   }
@@ -421,8 +426,10 @@ static void
 handle_request(struct deluge_msg_request *msg)
 {
   int highest_available;
+ bool result = isvalueinarray(msg->nodeid,nodeArray,sizeof(nodeArray));
+ printf("%d request status %d\n",msg->nodeid, result);
+ if(result == 1){
 
-  printf("request by %d\n",msg->nodeid);
   if(msg->pagenum >= OBJECT_PAGE_COUNT(current_object)) {
 
     return;
@@ -436,8 +443,7 @@ handle_request(struct deluge_msg_request *msg)
 
   /* Deluge M.6 */
  
-  if(msg->version < current_object.version &&
-      msg->pagenum <= highest_available) {
+  if(msg->version < current_object.version && msg->pagenum <= highest_available) {
     current_object.pages[msg->pagenum].last_request = clock_time();
 
     /* Deluge T.1 */
@@ -451,6 +457,9 @@ handle_request(struct deluge_msg_request *msg)
     transition(DELUGE_STATE_TX);
     ctimer_set(&tx_timer, CLOCK_SECOND, tx_callback, &current_object);    
   }
+  }else if(result == 0){
+    printf("handle request: you are not part of the network node %d\n",msg->nodeid);
+  }
 
 }
 /*
@@ -462,7 +471,7 @@ handle_packet(struct deluge_msg_packet *msg)
   struct deluge_page *page;
   uint16_t crc;
   struct deluge_msg_packet packet;
-
+  // printf("handle packet\n");
   memcpy(&packet, msg, sizeof(packet));
   //printf("packet recevied\n");
   PRINTF("Incoming packet for object id %u, version %u, page %u, packet num %u!\n",
@@ -561,10 +570,13 @@ case ELFLOADER_OK:
       /* Deluge R.3 */
       transition(DELUGE_STATE_MAINTAIN);
     } else {
+       printf("all page not recevied\n");
       /* More packets to come. Put lower layers in streaming mode. */
       packetbuf_set_attr(PACKETBUF_ATTR_PACKET_TYPE,
 			 PACKETBUF_ATTR_PACKET_TYPE_STREAM);
     }
+  }else{
+    printf("page not recevied\n");
   }
 }
 
@@ -657,12 +669,15 @@ static void
 command_dispatcher(const rimeaddr_t *sender)
 {
   char *msg;
+  char *test;
   int len;
   struct deluge_msg_profile *profile;
   msg = packetbuf_dataptr();  
   len = packetbuf_datalen();
+ 
   if(len < 1)
     return;
+  // printf("path %d\n", msg[0]);
   switch(msg[0]) {
   case DELUGE_CMD_SUMMARY:
 
@@ -675,9 +690,10 @@ command_dispatcher(const rimeaddr_t *sender)
       handle_request((struct deluge_msg_request *)msg);
     break;
   case DELUGE_CMD_PACKET:
-  
+    printf("recevied packet\n");
     if(len >= sizeof(struct deluge_msg_packet))
       handle_packet((struct deluge_msg_packet *)msg);
+      //handle_packet((struct deluge_msg_packet *)msg);
     break;
   case DELUGE_CMD_PROFILE:
 
