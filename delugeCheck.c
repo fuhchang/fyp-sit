@@ -48,7 +48,7 @@
 #include "lib/crc16.h"
 #include "lib/random.h"
 #include "sys/node-id.h"
-#include "deluge.h"
+#include "delugeCheck.h"
 #include <stdbool.h>
 #if NETSIM
 #include "ether.h"
@@ -90,9 +90,7 @@ static struct ctimer profile_timer;
 /* Deluge objects will get an ID that defaults to the current value of
    the next_object_id parameter. */
 static deluge_object_id_t next_object_id;
-// static int nodeArray[] = {1,3,4,5};
-// static int nodeArray[] = {1,4,5};
-static int nodeArray[] = {1,3};
+static int nodeArray[] = {1,3,4,5};
 /* Rime callbacks. */
 static void broadcast_recv(struct broadcast_conn *, const rimeaddr_t *);
 static void unicast_recv(struct unicast_conn *, const rimeaddr_t *);
@@ -328,7 +326,9 @@ handle_summary(struct deluge_msg_summary *msg, const rimeaddr_t *sender)
     broadcast_profile = 1;
   }
   bool result = isvalueinarray(msg->nodeid,nodeArray,sizeof(nodeArray));
-  // printf("request by %d\n",msg->nodeid);
+   if(msg->nodeid == 1){
+     printf("request by %d result %d\n",msg->nodeid, result);
+  }
   /* Deluge M.5 */
   if(msg->version == current_object.update_version && msg->highest_available > highest_available && result == 1) {
     if(msg->highest_available > OBJECT_PAGE_COUNT(current_object)) {
@@ -512,7 +512,9 @@ case ELFLOADER_OK:
    printf("exec: starting process %s. \n", 
   elfloader_autostart_processes[j]->name);
  }
- autostart_start(elfloader_autostart_processes);
+ printf("file name %s\n",current_object.filename)
+
+    // autostart_start(elfloader_autostart_processes);
          break;
  case ELFLOADER_BAD_ELF_HEADER:
       printT = "Bad ELF header";
@@ -719,6 +721,7 @@ int
 deluge_disseminate(char *file, unsigned version, unsigned node_id)
 {
   /* This implementation disseminates at most one object. */
+  printf("haha123\n");
     nodeID = node_id;
     int result = init_object(&current_object, file, version);
     if(result  < 0) {
