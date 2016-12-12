@@ -1,7 +1,7 @@
 
 #include "contiki.h"
 #include "cfs/cfs.h"
-#include "deluge.h"
+#include "delugeCheck.h"
 #include "node-id.h"
 
 #include <stdio.h>
