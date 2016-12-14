@@ -38,11 +38,13 @@ PROCESS_THREAD(deluge_test_process, ev, data)
    printf("Non-sink node: trying to recieve file.\n");
  }
 
-    
-    char *print, *symbol;   
+    int result;
+    // char *print, *symbol;   
     // deluge_disseminate(file2, node_id == SYBIL_ID,node_id);
     // deluge_disseminate(file, node_id == SINK_ID,node_id);
-   deluge_disseminate(file, node_id == SINK_ID,node_id);
+  char* filename =  deluge_disseminate(file, node_id == SINK_ID,node_id);
+  printf("filename %s\n", filename);
+  
  etimer_set(&et, CLOCK_SECOND * 5);
  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
  //etimer_reset(&et);

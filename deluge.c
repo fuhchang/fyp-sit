@@ -512,7 +512,7 @@ case ELFLOADER_OK:
    printf("exec: starting process %s. \n", 
   elfloader_autostart_processes[j]->name);
  }
- autostart_start(elfloader_autostart_processes);
+ //autostart_start(elfloader_autostart_processes);
          break;
  case ELFLOADER_BAD_ELF_HEADER:
       printT = "Bad ELF header";
@@ -715,21 +715,21 @@ broadcast_recv(struct broadcast_conn *c, const rimeaddr_t *sender)
 
 
 
-int
+char*
 deluge_disseminate(char *file, unsigned version, unsigned node_id)
 {
   /* This implementation disseminates at most one object. */
+  printf("input file %s\n",file);
     nodeID = node_id;
     int result = init_object(&current_object, file, version);
     if(result  < 0) {
       printf("next object id %d\n",next_object_id);
-      return -1;
+      return "failed";
     }
 
    process_start(&deluge_process, file);
 
-
-  return 0;
+  return current_object.filename;
 }
 
 PROCESS_THREAD(deluge_process, ev, data)
@@ -738,10 +738,10 @@ PROCESS_THREAD(deluge_process, ev, data)
   static unsigned time_counter;
   static unsigned r_rand;
 
-  PROCESS_EXITHANDLER(goto exit);
+  // PROCESS_EXITHANDLER(goto exit);
 
   PROCESS_BEGIN();
-  
+ 
   deluge_event = process_alloc_event();
  
   broadcast_open(&deluge_broadcast, DELUGE_BROADCAST_CHANNEL, &broadcast_call);

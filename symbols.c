@@ -71,7 +71,7 @@ extern int ctimer_process();
 extern int ctimer_reset();
 extern int ctimer_set();
 extern int ctimer_stop();
-extern int deluge_disseminate();
+extern char* deluge_disseminate();
 extern int deluge_process();
 extern int deluge_test_process();
 extern int ds2411_id();

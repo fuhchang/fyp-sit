@@ -163,6 +163,6 @@ struct deluge_page {
   uint8_t version;
 };
 
-int deluge_disseminate(char *file, unsigned version, unsigned node);
+char* deluge_disseminate(char *file, unsigned version, unsigned node);
 
 #endif
