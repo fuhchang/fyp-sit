@@ -48,6 +48,7 @@
 #include "lib/crc16.h"
 #include "lib/random.h"
 #include "sys/node-id.h"
+#include "test-deluge.h"
 #include "deluge.h"
 #include <stdbool.h>
 #if NETSIM
@@ -90,9 +91,7 @@ static struct ctimer profile_timer;
 /* Deluge objects will get an ID that defaults to the current value of
    the next_object_id parameter. */
 static deluge_object_id_t next_object_id;
-// static int nodeArray[] = {1,3,4,5};
-// static int nodeArray[] = {1,4,5};
-static int nodeArray[] = {1,3};
+
 /* Rime callbacks. */
 static void broadcast_recv(struct broadcast_conn *, const rimeaddr_t *);
 static void unicast_recv(struct unicast_conn *, const rimeaddr_t *);
@@ -103,14 +102,6 @@ static unsigned nodeID;
 static  struct deluge_object *packet;
 /* The Deluge process manages the main Deluge timer. */
 PROCESS(deluge_process, "Deluge");
-bool isvalueinarray(int val, int *arr, int size){
-    int i;
-    for (i=0; i < size; i++) {
-        if (arr[i] == val)
-            return true;
-    }
-    return false;
-}
 static void
 transition(int state)
 {
@@ -327,7 +318,7 @@ handle_summary(struct deluge_msg_summary *msg, const rimeaddr_t *sender)
     old_summary = 1;
     broadcast_profile = 1;
   }
-  bool result = isvalueinarray(msg->nodeid,nodeArray,sizeof(nodeArray));
+  bool result = isvalueinarray(msg->nodeid);
   // printf("request by %d\n",msg->nodeid);
   /* Deluge M.5 */
   if(msg->version == current_object.update_version && msg->highest_available > highest_available && result == 1) {
@@ -425,7 +416,7 @@ static void
 handle_request(struct deluge_msg_request *msg,  const rimeaddr_t *sender)
 {
   int highest_available;
- bool result = isvalueinarray(msg->nodeid,nodeArray,sizeof(nodeArray));
+ bool result = isvalueinarray(msg->nodeid);
  if(result == 1){
 
   if(msg->pagenum >= OBJECT_PAGE_COUNT(current_object)) {
@@ -502,48 +493,7 @@ handle_packet(struct deluge_msg_packet *msg)
 			 PACKETBUF_ATTR_PACKET_TYPE_STREAM_END);
       strcpy(current_object.filename, msg->filename);
       write_page(&current_object, packet.pagenum, current_object.current_page);
-      int cfs_fd = cfs_open(current_object.filename, CFS_READ | CFS_WRITE);
-   int loadResult = elfloader_load(cfs_fd);
-   int j;
-   char *printT, *symbolf;
-   switch(loadResult) {
-case ELFLOADER_OK:
- for(j=0; elfloader_autostart_processes[j] != NULL; j++) {
-   printf("exec: starting process %s. \n", 
-  elfloader_autostart_processes[j]->name);
- }
- //autostart_start(elfloader_autostart_processes);
-         break;
- case ELFLOADER_BAD_ELF_HEADER:
-      printT = "Bad ELF header";
-      break;
-    case ELFLOADER_NO_SYMTAB:
-      printT = "No symbol table";
-      break;
-    case ELFLOADER_NO_STRTAB:
-      printT = "No string table";
-      break;
-    case ELFLOADER_NO_TEXT:
-      printT = "No text segment";
-      break;
-    case ELFLOADER_SYMBOL_NOT_FOUND:
-      printT = "Symbol not found: ";
-      symbolf = elfloader_unknown;
-      break;
-    case ELFLOADER_SEGMENT_NOT_FOUND:
-      printT = "Segment not found: ";
-      symbolf = elfloader_unknown;
-      break;
-    case ELFLOADER_NO_STARTPOINT:
-      printT = "No starting point";
-      break;
-    default:
-      printT = "Unknown return code from the ELF loader (internal bug)";
-      break;
-     } 
-     if(loadResult != ELFLOADER_OK){
-      printf("Deluge: message: %s symbol: %s\n", printT, symbolf);
-     }
+      updateos(current_object.filename);
       page->version = packet.version;
       page->flags = PAGE_COMPLETE;
       PRINTF("Page %u completed\n", packet.pagenum);

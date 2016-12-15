@@ -42,8 +42,8 @@ obj_sky/deluge.o: deluge.c ../../core/./contiki.h \
  shell-sendtest.h shell-sky.h shell-tcpsend.h shell-text.h shell-time.h \
  shell-udpsend.h shell-vars.h shell-wget.h \
  ../../core/./loader/elfloader.h ../../core/./lib/crc16.h \
- ../../core/./lib/random.h ../../core/./sys/node-id.h deluge.h \
- ../../core/./dev/leds.h
+ ../../core/./lib/random.h ../../core/./sys/node-id.h test-deluge.h \
+ deluge.h ../../core/./dev/leds.h
 deluge.c ../../core/./contiki.h :
  ../../core/./contiki-version.h ../../platform/sky/./contiki-conf.h :
  ../../platform/sky/./platform-conf.h ../../cpu/msp430/./msp430def.h :
@@ -88,5 +88,5 @@ deluge.c ../../core/./contiki.h :
  shell-sendtest.h shell-sky.h shell-tcpsend.h shell-text.h shell-time.h :
  shell-udpsend.h shell-vars.h shell-wget.h :
  ../../core/./loader/elfloader.h ../../core/./lib/crc16.h :
- ../../core/./lib/random.h ../../core/./sys/node-id.h deluge.h :
- ../../core/./dev/leds.h :
+ ../../core/./lib/random.h ../../core/./sys/node-id.h test-deluge.h :
+ deluge.h ../../core/./dev/leds.h :
