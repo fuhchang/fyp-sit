@@ -284,6 +284,7 @@ advertise_summary(struct deluge_object *obj)
     ctimer_stop(&summary_timer);
     return;
   }
+
   summary.cmd = DELUGE_CMD_SUMMARY;
   summary.version = obj->update_version;
   summary.highest_available = highest_available_page(obj);
@@ -313,13 +314,16 @@ handle_summary(struct deluge_msg_summary *msg, const rimeaddr_t *sender)
   } else {
     recv_adv++;
   }
-
+  if(nodeID != 3 && nodeID == 1 && nodeID == 2){
+    printf("advertise by %d\n", msg->nodeid);
+  }
   if(msg->version < current_object.version) {
     old_summary = 1;
     broadcast_profile = 1;
   }
+  
   bool result = isvalueinarray(msg->nodeid);
-  // printf("request by %d\n",msg->nodeid);
+
   /* Deluge M.5 */
   if(msg->version == current_object.update_version && msg->highest_available > highest_available && result == 1) {
     if(msg->highest_available > OBJECT_PAGE_COUNT(current_object)) {
@@ -361,7 +365,7 @@ send_page(struct deluge_object *obj, unsigned pagenum)
   unsigned char buf[S_PAGE];
   struct deluge_msg_packet pkt;
   unsigned char *cp;
-  printf("send page filename %s\n",obj->filename);
+  // printf("send page filename to  %s\n",obj->filename, obj->nodeid);
 
   pkt.cmd = DELUGE_CMD_PACKET;
   pkt.pagenum = pagenum;
@@ -393,7 +397,7 @@ tx_callback(void *arg)
 
   struct deluge_object *obj;
   obj = (struct deluge_object *)arg;
-  printf("callback filename %s\n",obj->filename);
+  // printf("callback filename %s\n",obj->filename);
   if(obj->current_tx_page >= 0 && obj->tx_set) {
     send_page(obj, obj->current_tx_page);
     /* Deluge T.2. */
@@ -431,7 +435,7 @@ handle_request(struct deluge_msg_request *msg,  const rimeaddr_t *sender)
   highest_available = highest_available_page(&current_object);
 
   /* Deluge M.6 */
- 
+  // printf("request by %d\n",msg->nodeid);
   if(msg->version < current_object.version && msg->pagenum <= highest_available) {
     current_object.pages[msg->pagenum].last_request = clock_time();
 
@@ -474,6 +478,7 @@ handle_packet(struct deluge_msg_packet *msg)
   }
 
   page = &current_object.pages[packet.pagenum];
+
   if(packet.version == 1/*page->version*/ && !(page->flags & PAGE_COMPLETE)) {
     memcpy(&current_object.current_page[S_PKT * packet.packetnum],
 	packet.payload, S_PKT);

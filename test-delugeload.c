@@ -17,7 +17,7 @@
 #ifndef FILE_SIZE
 #define FILE_SIZE 1000
 #endif
-static int nodeArray[] = {1,4,5};
+static int nodeArray[] = {3};
 PROCESS(deluge_test_process, "Deluge test process");
 AUTOSTART_PROCESSES(&deluge_test_process);
 
@@ -29,10 +29,10 @@ PROCESS_THREAD(deluge_test_process, ev, data)
   // char *file2 = "hello-world2.ce";
   static struct etimer et;
   PROCESS_BEGIN();
+  etimer_set(&et, CLOCK_SECOND * 5);
+  deluge_disseminate(file, node_id=SINK_ID,node_id);
 
-  deluge_disseminate(file, node_id==SINK_ID,node_id);
-
- etimer_set(&et, CLOCK_SECOND * 5);
+ 
  PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
  etimer_reset(&et);
  
@@ -53,13 +53,14 @@ void *updateos(char* file){
    int loadResult = elfloader_load(cfs_fd);
    int j;
    char *printT, *symbolf;
-   switch(loadResult) {
+switch(loadResult) {
 case ELFLOADER_OK:
  for(j=0; elfloader_autostart_processes[j] != NULL; j++) {
    printf("exec: starting process %s. \n", 
-  elfloader_autostart_processes[j]->name);
+  elfloader_autostart_processes[j]);
  }
- // deluge_disseminate(file, 1,node_id);
+printf("file %s\n",file);
+ 
  autostart_start(elfloader_autostart_processes);
          break;
  case ELFLOADER_BAD_ELF_HEADER:
